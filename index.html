@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-16LE">
+    <title>XML Modifier</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+        <h2>XML Tool</h2>
+        <p class="sidebar-sub">Manufacturing Config Editor</p>
+        <div class="history">
+            <h4>History</h4>
+            <button id="clearHistoryBtn">Clear History</button>
+            <ul id="historyList"></ul>
+    </div>
+    </aside>
+
+    
+
+
+    <main class="main">
+
+        <div class="dashboard">
+
+            <div class="card">
+                <h1>Upload & Modify</h1>
+
+                <input type="file" id="xmlFile" required>
+
+                <div class="field-group">
+                    <label>Modelling Object</label>
+                    <select id="typeDropdown" required>
+                        <option value="">Select Object Type</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label>Instance Name</label>
+                    <select id="nameDropdown" disabled required>
+                        <option value="">Select Object Name</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label>Tag</label>
+                    <input list="tagList" id="tagDropdown" placeholder="Search tag.." disabled required>
+                    <datalist id="tagList"></datalist>
+                </div>
+
+                <div class="field-group">
+                    <label>New Value</label>
+                    <input type="text" id="newValue" placeholder="Enter new value" required>
+                </div>
+                
+                <button id="modifyBtn">Modify XML</button>
+
+                <button id="downloadBtn" class="hidden">Download File</button>
+                </div>
+
+                
+
+             
+
+            <div class="card">
+                <h1>XML Preview</h1>
+                <pre id="xmlPreview" class="xml-preview"></pre>
+                <button id="togglePreviewBtn" class="hidden">Read More</button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>   
