@@ -319,3 +319,31 @@ select option {
     background-color: #1e293b;
     color: white;
 }
+#tagListContainer {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    display: none;
+    background: #fff;
+    position: relative;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.tag-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.tag-item:hover, .tag-item.selected { background: #e8f0fe; }
+.tag-path { font-weight: 600; color: #1a1a2e; flex: 1; }
+.tag-value { color: #555; font-style: italic; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.tag-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+.tag-badge.cdata { background: #d1fae5; color: #065f46; }
+.tag-badge.value { background: #e0e7ff; color: #3730a3; }
+.tag-section-header { padding: 5px 12px; font-size: 11px; font-weight: 700; color: #888; background: #f9f9f9; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #eee; }
+#tagSearch:disabled { background: #f5f5f5; cursor: not-allowed; opacity: 0.6; }
