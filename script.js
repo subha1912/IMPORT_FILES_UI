@@ -35,6 +35,9 @@ const clearHistoryBtn   = document.getElementById("clearHistoryBtn");
 const tagSearch         = document.getElementById("tagSearch");
 const tagListContainer  = document.getElementById("tagListContainer");
 const tagList           = document.getElementById("tagList");
+const renameSection     = document.getElementById("renameSection");
+const renameInput       = document.getElementById("renameInput");
+const renameBtn         = document.getElementById("renameBtn");
 
 renderHistory();
 
@@ -230,6 +233,62 @@ nameDropdown.addEventListener("change", function () {
 
     if (!selectedInstance) return;
 
+    buildFlatTagList();
+    showRenameSection();
+});
+
+
+// =====================================================
+// RENAME OBJECT (updates ObjectName + ExportData > Name)
+// =====================================================
+
+function showRenameSection() {
+    if (selectedInstance) {
+        renameSection.style.display = "block";
+        const currentName = selectedInstance.getElementsByTagName("ObjectName")[0]?.textContent || "";
+        renameInput.value = currentName;
+    } else {
+        renameSection.style.display = "none";
+    }
+}
+
+renameBtn.addEventListener("click", function () {
+
+    if (!selectedInstance) {
+        alert("Select Object Type and Name first.");
+        return;
+    }
+
+    const newName = renameInput.value.trim();
+    if (newName === "") {
+        alert("Enter a new name.");
+        return;
+    }
+
+    const objectNameNode = selectedInstance.getElementsByTagName("ObjectName")[0];
+    if (objectNameNode) {
+        const cdata = Array.from(objectNameNode.childNodes).find(n => n.nodeType === 4);
+        if (cdata) cdata.nodeValue = newName;
+        else objectNameNode.textContent = newName;
+    }
+
+    const exportData = selectedInstance.querySelector("ExportData");
+    if (exportData) {
+        const nameNode = exportData.querySelector(":scope > Name, :scope > n");
+        if (nameNode) {
+            const cdata = Array.from(nameNode.childNodes).find(n => n.nodeType === 4);
+            if (cdata) cdata.nodeValue = newName;
+            else nameNode.textContent = newName;
+        }
+    }
+
+    const serializer = new XMLSerializer();
+    modifiedXMLString = serializer.serializeToString(xmlDoc);
+
+    alert("Renamed successfully in both locations. You can now download.");
+    downloadBtn.classList.remove("hidden");
+
+    populateTypeDropdown();
     buildFlatTagList();
 });
 
