@@ -502,7 +502,6 @@ modifyBtn.addEventListener("click", function () {
 // =====================================================
 // DOWNLOAD LOGIC
 // =====================================================
-
 downloadBtn.addEventListener("click", function () {
 
     if (!modifiedXMLString) return;
@@ -516,13 +515,14 @@ downloadBtn.addEventListener("click", function () {
         xmlContent = xmlContent.replace(/encoding="[^"]*"/, 'encoding="UTF-16LE"');
     }
 
-    const buffer = new ArrayBuffer(xmlContent.length * 2 + 2);
+    xmlContent = xmlContent.replace(/\r\n|\n/g, "\r\n");
+
+    // No BOM — buffer is exactly 2 bytes per character, nothing extra
+    const buffer = new ArrayBuffer(xmlContent.length * 2);
     const view   = new DataView(buffer);
 
-    view.setUint16(0, 0xFEFF, true);
-
     for (let i = 0; i < xmlContent.length; i++) {
-        view.setUint16(i * 2 + 2, xmlContent.charCodeAt(i), true);
+        view.setUint16(i * 2, xmlContent.charCodeAt(i), true);
     }
 
     const blob = new Blob([buffer], { type: "application/xml;charset=UTF-16LE" });
