@@ -294,185 +294,123 @@ renameBtn.addEventListener("click", function () {
 
 
 // =====================================================
-// TAG SELECTION — FLAT SEARCHABLE LIST
+// TAG SELECTION — TREE VIEW (parent/child aware)
 // =====================================================
 
 function buildFlatTagList() {
 
-    flatTagList = [];
     selectedTagNode = null;
+    tagSearch.value = "";
+    tagSearch.disabled = false;
+    tagSearch.placeholder = "Filter tags...";
 
     if (!selectedInstance) return;
 
     const exportData = selectedInstance.querySelector("ExportData");
     if (!exportData) return;
 
-    walkNode(exportData, []);
-
-    // CDATA fields first, then plain VALUE fields
-    flatTagList.sort((a, b) => {
-        if (a.type === "CDATA" && b.type !== "CDATA") return -1;
-        if (a.type !== "CDATA" && b.type === "CDATA") return 1;
-        return 0;
-    });
-
-    // Add [0],[1] index to duplicate paths so user can tell them apart
-    const pathCount = {};
-    flatTagList.forEach(item => {
-        pathCount[item.path] = (pathCount[item.path] || 0) + 1;
-    });
-    const pathSeen = {};
-    flatTagList.forEach(item => {
-        if (pathCount[item.path] > 1) {
-            const idx = pathSeen[item.path] || 0;
-            item.displayPath = item.path + " [" + idx + "]";
-            pathSeen[item.path] = idx + 1;
-        } else {
-            item.displayPath = item.path;
-        }
-    });
-
-    tagSearch.disabled = false;
-    tagSearch.value = "";
-    tagSearch.placeholder = "Search by tag name or current value...";
-    renderTagList(flatTagList);
+    renderTree(exportData, tagList, "");
     tagListContainer.style.display = "block";
 }
 
+function getLeafValue(node) {
+    const cdata = Array.from(node.childNodes).find(n => n.nodeType === 4);
+    if (cdata) return { value: cdata.nodeValue, type: "CDATA" };
+    const text = Array.from(node.childNodes).find(n => n.nodeType === 3 && n.nodeValue.trim() !== "");
+    if (text) return { value: text.nodeValue.trim(), type: "VALUE" };
+    return null;
+}
 
-function walkNode(node, ancestorPath) {
+function renderTree(node, container, ancestorPath, filterQuery) {
 
+    container.innerHTML = "";
     const skipTags = ["ExportData", "BaseExportData"];
     const children = Array.from(node.children);
 
-    if (children.length === 0) {
+    children.forEach(function (child) {
 
-        let val  = null;
-        let type = null;
-
-        const cdataNode = Array.from(node.childNodes).find(n => n.nodeType === 4);
-        if (cdataNode) {
-            val  = cdataNode.nodeValue;
-            type = "CDATA";
-        } else {
-            const textNode = Array.from(node.childNodes).find(
-                n => n.nodeType === 3 && n.nodeValue.trim() !== ""
-            );
-            if (textNode) {
-                val  = textNode.nodeValue.trim();
-                type = "VALUE";
-            }
-        }
-
-        if (val !== null && val !== "") {
-            const path = [...ancestorPath, node.tagName].join(" > ");
-            flatTagList.push({
-                path:        path,
-                displayPath: path,
-                value:       val,
-                type:        type,
-                node:        node
-            });
-        }
-
-    } else {
-        const newPath = skipTags.includes(node.tagName)
+        const currentPath = skipTags.includes(child.tagName)
             ? ancestorPath
-            : [...ancestorPath, node.tagName];
+            : (ancestorPath ? ancestorPath + " > " + child.tagName : child.tagName);
 
-        children.forEach(child => walkNode(child, newPath));
-    }
+        const leaf = getLeafValue(child);
+        const hasChildren = child.children.length > 0;
+
+        if (!hasChildren) {
+
+            if (!leaf || leaf.value === "") return;
+
+            if (filterQuery &&
+                !currentPath.toLowerCase().includes(filterQuery) &&
+                !leaf.value.toLowerCase().includes(filterQuery)) return;
+
+            const row = document.createElement("div");
+            row.className = "tag-item";
+            row.innerHTML =
+                '<span class="tag-badge ' + leaf.type.toLowerCase() + '">' + leaf.type + '</span>' +
+                '<span class="tag-path" title="' + currentPath + '">' + currentPath + '</span>' +
+                '<span class="tag-value" title="' + leaf.value + '">' + leaf.value + '</span>';
+
+            row.addEventListener("click", function () {
+                document.querySelectorAll(".tag-item.selected")
+                    .forEach(el => el.classList.remove("selected"));
+                row.classList.add("selected");
+                selectedTagNode = child;
+                tagSearch.value = currentPath + "   →   " + leaf.value;
+                resetModifyState();
+            });
+
+            container.appendChild(row);
+
+        } else {
+
+            const branchHasMatch = !filterQuery || branchMatches(child, filterQuery);
+            if (!branchHasMatch) return;
+
+            const details = document.createElement("details");
+            details.open = !!filterQuery;
+            details.style.marginLeft = "12px";
+
+            const summary = document.createElement("summary");
+            summary.textContent = child.tagName;
+            summary.style.cursor = "pointer";
+            summary.style.fontSize = "13px";
+            summary.style.color = "var(--text-secondary)";
+            summary.style.padding = "4px 0";
+
+            details.appendChild(summary);
+            container.appendChild(details);
+
+            renderTree(child, details, currentPath, filterQuery);
+        }
+    });
 }
 
-
-function renderTagList(items) {
-
-    tagList.innerHTML = "";
-
-    if (items.length === 0) {
-        tagList.innerHTML =
-            '<div style="padding:10px 12px;color:#999;font-size:13px;">No matching tags found</div>';
-        return;
+function branchMatches(node, query) {
+    const children = Array.from(node.children);
+    if (children.length === 0) {
+        const leaf = getLeafValue(node);
+        if (!leaf) return false;
+        return node.tagName.toLowerCase().includes(query) ||
+               leaf.value.toLowerCase().includes(query);
     }
-
-    let lastType = null;
-
-    items.forEach(function (item) {
-
-        if (item.type !== lastType) {
-            const header = document.createElement("div");
-            header.className = "tag-section-header";
-            header.textContent = item.type === "CDATA"
-                ? "★  CDATA Fields  —  most commonly changed"
-                : "Other Fields";
-            tagList.appendChild(header);
-            lastType = item.type;
-        }
-
-        const row = document.createElement("div");
-        row.className = "tag-item";
-
-        row.innerHTML =
-            '<span class="tag-badge ' + item.type.toLowerCase() + '">' + item.type + '</span>' +
-            '<span class="tag-path">'  + item.displayPath + '</span>' +
-            '<span class="tag-value" title="' + item.value + '">' + item.value + '</span>';
-
-        row.addEventListener("click", function () {
-            document.querySelectorAll(".tag-item.selected")
-                .forEach(function (el) { el.classList.remove("selected"); });
-
-            row.classList.add("selected");
-            selectedTagNode = item.node;
-
-            tagSearch.value = item.displayPath + "   →   " + item.value;
-            tagList.innerHTML = "";
-            tagListContainer.style.display = "none";
-
-            resetModifyState();
-        });
-
-        tagList.appendChild(row);
-    });
+    return children.some(c => branchMatches(c, query));
 }
 
 
 tagSearch.addEventListener("input", function () {
-
-    if (flatTagList.length === 0) return;
-
-    selectedTagNode = null;
-    tagListContainer.style.display = "block";
-
+    if (!selectedInstance) return;
+    const exportData = selectedInstance.querySelector("ExportData");
     const query = this.value.toLowerCase().trim();
-
-    if (query === "") {
-        renderTagList(flatTagList);
-        return;
-    }
-
-    const filtered = flatTagList.filter(function (item) {
-        return (
-            item.displayPath.toLowerCase().includes(query) ||
-            item.value.toLowerCase().includes(query)
-        );
-    });
-
-    renderTagList(filtered);
+    renderTree(exportData, tagList, "", query);
+    tagListContainer.style.display = "block";
 });
 
-
 tagSearch.addEventListener("focus", function () {
-    if (flatTagList.length === 0) return;
+    if (!selectedInstance) return;
+    const exportData = selectedInstance.querySelector("ExportData");
     const query = this.value.toLowerCase().trim();
-    const filtered = query === ""
-        ? flatTagList
-        : flatTagList.filter(function (item) {
-            return (
-                item.displayPath.toLowerCase().includes(query) ||
-                item.value.toLowerCase().includes(query)
-            );
-          });
-    renderTagList(filtered);
+    renderTree(exportData, tagList, "", query);
     tagListContainer.style.display = "block";
 });
 
@@ -483,7 +421,6 @@ document.addEventListener("click", function (e) {
         !tagListContainer.contains(e.target) &&
         e.target !== tagSearch
     ) {
-        tagList.innerHTML = "";
         tagListContainer.style.display = "none";
     }
 });
